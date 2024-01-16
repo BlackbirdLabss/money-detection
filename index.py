@@ -6,7 +6,7 @@ app = Flask(__name__)
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 @app.route("/")
 def index():
-    return render_template("upload.html")
+    return "selamat datang!"
 @app.route("/upload", methods=["POST"])
 def upload():
     target = os.path.join(APP_ROOT, 'images/')
