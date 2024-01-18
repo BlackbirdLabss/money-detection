@@ -149,8 +149,6 @@ def uang_matching():
                 cv2.rectangle(image_test, (startX, startY),
                                 (endX, endY), (0, 0, 255), 2)
 
-            cv2.waitKey(0)
-
     dataMatch = countResult(template_datas)
     return dataMatch
 
