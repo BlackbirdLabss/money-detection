@@ -179,4 +179,4 @@ def upload_image():
     return jsonify(result)
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
