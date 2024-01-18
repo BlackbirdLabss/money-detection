@@ -154,6 +154,9 @@ def uang_matching():
     dataMatch = countResult(template_datas)
     return dataMatch
 
+@app.route('/')
+def home():
+     return 'welcome, money detection'
 
 @app.route('/api/upload', methods=['POST'])
 
@@ -168,7 +171,7 @@ def upload_image():
 
     max_nominal = max(dataMatch, key=dataMatch.get)
     max_average_max_val = dataMatch[max_nominal]
-    
+
     if max_average_max_val > thershold:
          result['money'] = True
          
