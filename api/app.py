@@ -118,7 +118,7 @@ def uang_matching():
     
     
     # template matching
-    for image_glob in glob.glob('test/*.jpg'):
+    for image_glob in glob.glob('tmp/*.jpg'):
         for template in template_datas:
             image_test = cv2.imread(image_glob)
             (template_height, template_width) = template['glob'].shape[:2]
@@ -162,7 +162,7 @@ def home():
 
 def upload_image():
     file = request.files['image']
-    file.save('./test/image.jpg')
+    file.save('/tmp/image.jpg')
 
     result = {'money': False}
     thershold = 0.48
