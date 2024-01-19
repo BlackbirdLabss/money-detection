@@ -160,7 +160,7 @@ def home():
 
 def upload_image():
     file = request.files['image']
-    file.save('/tmp/image.jpg')
+    file.save('./tmp/image.jpg')
 
     result = {'money': False}
     thershold = 0.48
