@@ -3,6 +3,7 @@ from flask import Flask, jsonify, request
 import cv2
 import numpy as np
 import glob
+import os
 
 app = Flask(__name__) 
 
@@ -112,9 +113,13 @@ def uang_matching():
         tmp = cv2.imread(template_file)
         tmp = resize(tmp, width=int(tmp.shape[1]*0.5))  # scalling
         tmp = cv2.cvtColor(tmp, cv2.COLOR_BGR2GRAY)  # grayscale
-        split_path = template_file.replace('template\\', '').replace('v2\\', '')
-        nominal = split_path.split('\\')[0]
-        template_datas.append({"glob": tmp, "nominal": nominal, "max_value": 0.0})
+        #split_path = template_file.replace('template\\', '').replace('v2\\', '')
+        #nominal = split_path.split('\\')[0]
+        
+        normalized_path = os.path.normpath(template_file)
+        directory, file_name = os.path.split(normalized_path)
+        nominal, _ = os.path.split(directory)
+        template_datas.append({"glob": tmp, "nominal": os.path.basename(nominal), "max_value": 0.0})
     
     
     # template matching
