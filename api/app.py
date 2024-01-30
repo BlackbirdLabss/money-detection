@@ -126,9 +126,10 @@ def uang_matching():
     for image_glob in glob.glob('tmp/*.jpg'):
         for template in template_datas:
             image_test = cv2.imread(image_glob)
+            image_test_resized = cv2.resize(image_test, (1200, 1600))#to avoid corrupt image cause high resolution
             (template_height, template_width) = template['glob'].shape[:2]
 
-            image_test_p = cv2.cvtColor(image_test, cv2.COLOR_BGR2GRAY)
+            image_test_p = cv2.cvtColor(image_test_resized, cv2.COLOR_BGR2GRAY)
 
             found = None
             for scale in np.linspace(0.2, 1.0, 20)[::-1]:
@@ -175,10 +176,12 @@ def upload_image():
     max_nominal = max(dataMatch, key=dataMatch.get)
     max_average_max_val = dataMatch[max_nominal]
 
+    result['nominal'] = ''
+
     if max_average_max_val > thershold:
+         result['nominal'] = max_nominal
          result['money'] = True
-         
-    result[max_nominal] = max_average_max_val
+    result['max_val'] = max_average_max_val
     return jsonify(result)
 
 if __name__ == '__main__':
