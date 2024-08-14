@@ -8,5 +8,6 @@ htmlcov/
 docs/_build/
 dist/
 myenv/
+tmp/
 .venv
 .vercel
