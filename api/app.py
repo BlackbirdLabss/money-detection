@@ -126,7 +126,7 @@ def match_currency():
     
     
     # template matching
-    for image_path in glob.glob('sample/*.jpg'):
+    for image_path in glob.glob(os.path.join(base_path,'sample' , '*.jpg')):
         for template in templates:
             image_read = cv2.imread(image_path)
             resized_image = cv2.resize(image_read, (1200, 1600))# avoid corrupt image cause high resolution
@@ -168,7 +168,7 @@ def home():
 
 def upload_image():
     image_file = request.files['image']
-    image_file.save('./sample/image.jpg')
+    image_file.save(os.path.join(base_path, 'sample', 'image.jpg'))
 
     result = {'is_money_detected': False}
     thershold = 0.48
