@@ -6,6 +6,7 @@ import glob
 import os
 
 app = Flask(__name__) 
+base_path = os.getcwd()
 
 def translate(image, x, y):
 	# Define the translation matrix and perform the translation
@@ -82,106 +83,108 @@ def resize(image, width = None, height = None, inter = cv2.INTER_AREA):
 	# return the resized image
 	return resized
 
-def countResult(datas):
-    sum_max_vals = {}
-    count_max_vals = {}
+def calculate_average_max_values(data_list):
+    total_max_values = {}
+    max_value_counts = {}
 
-    for data in datas:
-        nominal = data['nominal']
-        max_val = data['max_value']
+    for data in data_list:
+        denomination = data['denomination']
+        max_value = data['max_value']
 
-        if nominal in sum_max_vals:
-            sum_max_vals[nominal] += max_val
-            count_max_vals[nominal] += 1
-        else:
-            sum_max_vals[nominal] = max_val
-            count_max_vals[nominal] = 1
+        if denomination not in total_max_values:
+            total_max_values[denomination] = 0
+            max_value_counts[denomination] = 0
+        total_max_values[denomination] += max_value
+        max_value_counts[denomination] += 1
 
-    average_max_vals = {}
-    for nominal, total_max_val in sum_max_vals.items():
-        average_max_vals[nominal] = sum_max_vals[nominal] / count_max_vals[nominal]
-            
+    average_max_vals = {
+         denomination: total_max_value / max_value_counts[denomination] for denomination, total_max_value in total_max_values.items()
+    }
+
     return average_max_vals
 
-def uang_matching():
-    # load templatel
-    template_datas = []
-    template_files = glob.glob('template/*/*/*.jpg', recursive=True)
-    print("template loaded:", template_files)
-    # prepare template
-    for template_file in template_files:
-        tmp = cv2.imread(template_file)
-        tmp = resize(tmp, width=int(tmp.shape[1]*0.5))  # scalling
-        tmp = cv2.cvtColor(tmp, cv2.COLOR_BGR2GRAY)  # grayscale
-        #split_path = template_file.replace('template\\', '').replace('v2\\', '')
-        #nominal = split_path.split('\\')[0]
-        
-        normalized_path = os.path.normpath(template_file)
+def match_currency():
+    # Load template files
+    templates = []
+    template_path = os.path.join(base_path,'templates' , '*', '*', '*.jpg')
+    template_paths = glob.glob(template_path, recursive=True)
+    print("Templates loaded: ", template_paths)
+
+    # Prepare templates
+    for path in template_paths:
+        image = cv2.imread(path)
+        image = resize(image, width=int(image.shape[1] * 0.5))  # Scaling
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # Convert to grayscale        
+        normalized_path = os.path.normpath(path)  # Normalize path to eliminate double slashes
         directory, file_name = os.path.split(normalized_path)
-        nominal, _ = os.path.split(directory)
-        template_datas.append({"glob": tmp, "nominal": os.path.basename(nominal), "max_value": 0.0})
+        denomination, _ = os.path.split(directory)
+        templates.append({
+            "image": image,
+            "denomination": os.path.basename(denomination),
+            "max_value": 0.0
+        })
     
     
     # template matching
-    for image_glob in glob.glob('tmp/*.jpg'):
-        for template in template_datas:
-            image_test = cv2.imread(image_glob)
-            image_test_resized = cv2.resize(image_test, (1200, 1600))#to avoid corrupt image cause high resolution
-            (template_height, template_width) = template['glob'].shape[:2]
+    for image_path in glob.glob('sample/*.jpg'):
+        for template in templates:
+            image_read = cv2.imread(image_path)
+            resized_image = cv2.resize(image_read, (1200, 1600))# avoid corrupt image cause high resolution
+            (template_height, template_width) = template['image'].shape[:2]
 
-            image_test_p = cv2.cvtColor(image_test_resized, cv2.COLOR_BGR2GRAY)
+            gray_image = cv2.cvtColor(resized_image, cv2.COLOR_BGR2GRAY)
 
             found = None
             for scale in np.linspace(0.2, 1.0, 20)[::-1]:
-                # scalling uang
-                resized = resize(
-                    image_test_p, width=int(image_test_p.shape[1] * scale))
-                r = image_test_p.shape[1] / float(resized.shape[1])
-                if resized.shape[0] < template_height or resized.shape[1] < template_width:
+                # scalling image
+                scaled_image = resize(
+                    gray_image, width=int(gray_image.shape[1] * scale))
+                ratio = gray_image.shape[1] / float(scaled_image.shape[1])
+                if scaled_image.shape[0] < template_height or scaled_image.shape[1] < template_width:
                     break
 
                 # template matching
-                result = cv2.matchTemplate(resized, template['glob'], cv2.TM_CCOEFF_NORMED)
-                (_, maxVal, _, maxLoc) = cv2.minMaxLoc(result)
-                if found is None or maxVal > found[0]:
-                    found = (maxVal, maxLoc, r)
+                result = cv2.matchTemplate(scaled_image, template['image'], cv2.TM_CCOEFF_NORMED)
+                (_, max_value, _, max_location) = cv2.minMaxLoc(result)
+                if found is None or max_value > found[0]:
+                    found = (max_value, max_location, ratio)
             if found is not None:
-                (maxVal, maxLoc, r) = found
-                (startX, startY) = (int(maxLoc[0]*r), int(maxLoc[1] * r))
+                (max_value, max_location, ratio) = found
+                (start_x, start_y) = (int(max_location[0] * ratio), int(max_location[1] * ratio))
                 (endX, endY) = (
-                    int((maxLoc[0] + template_width) * r), int((maxLoc[1] + template_height) * r))
-                print(maxVal)                    
-                template['max_value'] = maxVal
-                cv2.rectangle(image_test, (startX, startY),
+                    int((max_location[0] + template_width) * ratio), int((max_location[1] + template_height) * ratio))                 
+                template['max_value'] = max_value
+                cv2.rectangle(image_read, (start_x, start_y),
                                 (endX, endY), (0, 0, 255), 2)
 
-    dataMatch = countResult(template_datas)
-    return dataMatch
+    match_data = calculate_average_max_values(templates)
+    return match_data
 
 @app.route('/')
 def home():
-     return 'welcome, money detection'
+     return 'Welcome to money detection :)'
 
 @app.route('/api/upload', methods=['POST'])
 
 def upload_image():
-    file = request.files['image']
-    file.save('./tmp/image.jpg')
+    image_file = request.files['image']
+    image_file.save('./sample/image.jpg')
 
-    result = {'money': False}
+    result = {'is_money_detected': False}
     thershold = 0.48
-    dataMatch = uang_matching()
+    match_data = match_currency()
     
 
-    max_nominal = max(dataMatch, key=dataMatch.get)
-    max_average_max_val = dataMatch[max_nominal]
+    max_denomination = max(match_data, key=match_data.get)
+    max_average_value = match_data[max_denomination]
 
-    result['nominal'] = ''
+    result['denomination'] = ''
 
-    if max_average_max_val > thershold:
-         result['nominal'] = max_nominal
-         result['money'] = True
-    result['max_val'] = max_average_max_val
+    if max_average_value > thershold:
+         result['denomination'] = max_denomination
+         result['is_money_detected'] = True
+
+    result['max_val'] = max_average_value
     return jsonify(result)
 
 if __name__ == '__main__':
