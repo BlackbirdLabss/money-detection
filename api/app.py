@@ -1,5 +1,5 @@
 from flask.views import MethodView
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, make_response
 import cv2
 import numpy as np
 import glob
@@ -160,6 +160,17 @@ def match_currency():
     match_data = calculate_average_max_values(templates)
     return match_data
 
+def _build_cors_preflight_response():
+     response = make_response()
+     response.headers.add("Access-Control-Allow-Origin", "*")
+     response.headers.add('Access-Control-Allow-Headers', "*")
+     response.headers.add('Access-Control-Allow-Methods', "*")
+     return response
+
+def _corsify_actual_response(response):
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    return response
+
 @app.route('/')
 def home():
      return 'Welcome to money detection :)'
@@ -185,7 +196,8 @@ def upload_image():
          result['is_money_detected'] = True
 
     result['max_val'] = max_average_value
-    return jsonify(result)
+    
+    return _corsify_actual_response(jsonify(result))
 
 if __name__ == '__main__':
     app.run(debug=True)
